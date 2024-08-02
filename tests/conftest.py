@@ -14,8 +14,10 @@ Fixtures:
 """
 
 # Standard library imports
+import asyncio
 from builtins import Exception, range, str
 from datetime import timedelta
+import os
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
@@ -40,11 +42,21 @@ from app.services.jwt_service import create_access_token
 fake = Faker()
 
 settings = get_settings()
-TEST_DATABASE_URL = settings.database_url.replace("postgresql://", "postgresql+asyncpg://")
+TEST_DATABASE_URL = settings.database_url.replace("localhost", "postgres" if "PYTEST_DOCKER" in os.environ else "localhost")
 engine = create_async_engine(TEST_DATABASE_URL, echo=settings.debug)
 AsyncTestingSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 AsyncSessionScoped = scoped_session(AsyncTestingSessionLocal)
 
+@pytest.fixture(scope="session")
+async def async_engine():
+    yield engine
+    await engine.dispose()
+
+@pytest.fixture(scope="function")
+async def async_session():
+    async_session_maker = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async with async_session_maker() as session:
+        yield session
 
 @pytest.fixture
 def email_service():
@@ -74,12 +86,12 @@ def initialize_database():
 # this function setup and tears down (drops tales) for each test function, so you have a clean database for each test.
 @pytest.fixture(scope="function", autouse=True)
 async def setup_database():
+    await asyncio.sleep(1)  # Add a small delay
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
     async with engine.begin() as conn:
-        # you can comment out this line during development if you are debugging a single test
-         await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
 
 @pytest.fixture(scope="function")
@@ -238,3 +250,6 @@ def email_service():
         mock_service.send_verification_email.return_value = None
         mock_service.send_user_email.return_value = None
         return mock_service
+
+print(f"TEST_DATABASE_URL: {TEST_DATABASE_URL}")
+print(f"engine: {engine}")
