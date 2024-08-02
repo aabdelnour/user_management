@@ -199,3 +199,23 @@ class UserService:
             await session.commit()
             return True
         return False
+
+    @classmethod
+    async def update_professional_status(cls, session: AsyncSession, user_id: UUID, is_professional: bool) -> Optional[User]:
+        try:
+            user = await cls.get_by_id(session, user_id)
+            if not user:
+                logger.error(f"User {user_id} not found.")
+                return None
+
+            user.is_professional = is_professional
+            user.professional_status_updated_at = datetime.now(timezone.utc)
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+            logger.info(f"Professional status updated for user {user_id}: {is_professional}")
+            return user
+        except SQLAlchemyError as e:
+            logger.error(f"Database error while updating professional status: {e}")
+            await session.rollback()
+            return None
