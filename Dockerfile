@@ -31,8 +31,9 @@ RUN python -m venv /.venv \
 FROM python:3.12-slim-bookworm as final
 
 # Install necessary packages in the final stage
-RUN apt-get update && apt-get install -y postgresql-client-16    libc-bin=2.36-9+deb12u7 \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
+    libc-bin=2.36-9+deb12u7 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
