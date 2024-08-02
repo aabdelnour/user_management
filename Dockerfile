@@ -11,11 +11,12 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /myapp
 
-# Update system and specifically upgrade libc-bin to the required security patch version
+# Update system and install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
-    && apt-get install -y libc-bin=2.36-9+deb12u7 \
+    postgresql-client \
+    libc-bin=2.36-9+deb12u7 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -29,8 +30,9 @@ RUN python -m venv /.venv \
 # Define a second stage for the runtime, using the same Debian Bookworm slim image
 FROM python:3.12-slim-bookworm as final
 
-# Upgrade libc-bin in the final stage to ensure security patch is applied
-RUN apt-get update && apt-get install -y libc-bin=2.36-9+deb12u7 \
+# Install necessary packages in the final stage
+RUN apt-get update && apt-get install -y postgresql-client-16    libc-bin=2.36-9+deb12u7 \
+    postgresql-client \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

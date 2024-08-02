@@ -3,12 +3,19 @@ from pathlib import Path
 from pydantic import  Field, AnyUrl, DirectoryPath
 from pydantic_settings import BaseSettings
 
+import os
+
+database_url: str = Field(
+    default=os.getenv('DATABASE_URL', 'postgresql+asyncpg://user:password@postgres:5432/myappdb'),
+    description="URL for connecting to the database"
+)
+
 class Settings(BaseSettings):
     max_login_attempts: int = Field(default=3, description="Background color of QR codes")
     # Server configuration
     server_base_url: AnyUrl = Field(default='http://localhost', description="Base URL of the server")
     server_download_folder: str = Field(default='downloads', description="Folder for storing downloaded files")
-
+    
     # Security and authentication configuration
     secret_key: str = Field(default="secret-key", description="Secret key for encryption")
     algorithm: str = Field(default="HS256", description="Algorithm used for encryption")

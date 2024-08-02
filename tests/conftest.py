@@ -47,6 +47,9 @@ engine = create_async_engine(TEST_DATABASE_URL, echo=settings.debug)
 AsyncTestingSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 AsyncSessionScoped = scoped_session(AsyncTestingSessionLocal)
 
+os.environ['DATABASE_URL'] = 'postgresql+asyncpg://user:password@postgres:5432/test_myappdb'
+
+
 @pytest.fixture(scope="session")
 async def async_engine():
     yield engine
