@@ -1,5 +1,5 @@
 """
-File: test_database_operations.py
+File: conftest.py
 
 Overview:
 This Python test file utilizes pytest to manage database states and HTTP clients for testing a web application built with FastAPI and SQLAlchemy. It includes detailed fixtures to mock the testing environment, ensuring each test is run in isolation with a consistent setup.
@@ -49,6 +49,11 @@ AsyncSessionScoped = scoped_session(AsyncTestingSessionLocal)
 
 os.environ['DATABASE_URL'] = 'postgresql+asyncpg://user:password@postgres:5432/test_myappdb'
 
+@pytest.fixture(scope="session")
+def event_loop():
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
 
 @pytest.fixture(scope="session")
 async def async_engine():
@@ -68,8 +73,6 @@ def email_service():
     email_service = EmailService(template_manager=template_manager)
     return email_service
 
-
-# this is what creates the http client for your api tests
 @pytest.fixture(scope="function")
 async def async_client(db_session):
     async with AsyncClient(app=app, base_url="http://testserver") as client:
@@ -86,7 +89,6 @@ def initialize_database():
     except Exception as e:
         pytest.fail(f"Failed to initialize the database: {str(e)}")
 
-# this function setup and tears down (drops tales) for each test function, so you have a clean database for each test.
 @pytest.fixture(scope="function", autouse=True)
 async def setup_database():
     await asyncio.sleep(1)  # Add a small delay
@@ -225,10 +227,8 @@ async def manager_user(db_session: AsyncSession):
     await db_session.commit()
     return user
 
-# Configure a fixture for each type of user role you want to test
 @pytest.fixture(scope="function")
 def admin_token(admin_user):
-    # Assuming admin_user has an 'id' and 'role' attribute
     token_data = {"sub": str(admin_user.id), "role": admin_user.role.name}
     return create_access_token(data=token_data, expires_delta=timedelta(minutes=30))
 
