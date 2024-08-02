@@ -38,6 +38,42 @@ router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 settings = get_settings()
 
+@router.patch("/users/{user_id}/professional-status", response_model=UserResponse, name="update_professional_status", tags=["User Management Requires (Admin or Manager Roles)"])
+async def update_professional_status(
+    user_id: UUID,
+    is_professional: bool,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
+):
+    """
+    Update the professional status of a user.
+
+    - **user_id**: UUID of the user to update.
+    - **is_professional**: New professional status (True/False).
+    """
+    updated_user = await UserService.update_professional_status(db, user_id, is_professional)
+    if not updated_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    return UserResponse.model_construct(
+        id=updated_user.id,
+        bio=updated_user.bio,
+        first_name=updated_user.first_name,
+        last_name=updated_user.last_name,
+        nickname=updated_user.nickname,
+        email=updated_user.email,
+        role=updated_user.role,
+        is_professional=updated_user.is_professional,
+        last_login_at=updated_user.last_login_at,
+        profile_picture_url=updated_user.profile_picture_url,
+        github_profile_url=updated_user.github_profile_url,
+        linkedin_profile_url=updated_user.linkedin_profile_url,
+        created_at=updated_user.created_at,
+        updated_at=updated_user.updated_at,
+        links=create_user_links(updated_user.id, request)
+    )
+
 @router.get("/users/{user_id}", response_model=UserResponse, name="get_user", tags=["User Management Requires (Admin or Manager Roles)"])
 async def get_user(user_id: UUID, request: Request, db: AsyncSession = Depends(get_db), token: str = Depends(oauth2_scheme), current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))):
     """
